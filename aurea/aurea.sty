@@ -1,0 +1,350 @@
+%% aurea.sty
+%%
+%% The house style shared by ce-Speranza-e-speranza, ecce-homo,
+%% mia-vita-vicino-a-padre-pio and vocazione-san-matteo: a classical book look
+%% on the standard article class, built around a golden-section ("sezione
+%% aurea") text block, Cochineal with old-style figures, first-line indented
+%% paragraphs, a golden-ratio rule as the scene break and the Italian
+%% "Indice" at the back.
+%%
+%% The front matter of the four projects is the title page, then (optionally
+%% an epigraph, then) the "Sommario" on a page of its own, then the text:
+%%   \maketitle
+%%   \begin{sommario} ... \end{sommario}
+%%
+%% Usage:  \documentclass[12pt,a4paper]{article}
+%%         \usepackage{aurea}                 % or \usepackage[<keys>]{aurea}
+%%         \aureasetup{title=..., subtitle=..., author=..., date=...}
+%%
+%% With no options the output is the same as the hand-written preambles of
+%% the four original projects. See README.md for the options, the commands
+%% and a migration table.
+%%
+\NeedsTeXFormat{LaTeX2e}[2022-06-01]% \DeclareKeys, hooks, \NewDocumentEnvironment
+\ProvidesPackage{aurea}
+  [2026/09/24 v1.2 Golden-section book style for Italian transcripts]
+
+%% ---------------------------------------------------------------------------
+%% Options
+%%
+%% Layout keys only work as package options, because they choose which
+%% packages to load and how. Metadata keys only work in \aureasetup, which
+%% comes after the package is loaded; they are defined further down.
+%% ---------------------------------------------------------------------------
+\newif\ifaurea@nonumbers
+\newif\ifaurea@watermark
+\def\aurea@language{italian}
+\def\aurea@figures{osf}
+\def\aurea@geometry{}
+\def\aurea@urlstyle{tt}
+\def\aurea@wmtext{DRAFT}
+\def\aurea@setfigures#1{%
+  \def\aurea@tmp{#1}\def\aurea@tmpb{osf}\def\aurea@tmpc{lining}%
+  \ifx\aurea@tmp\aurea@tmpb\else\ifx\aurea@tmp\aurea@tmpc\else
+    \PackageError{aurea}{figures=#1 is not valid}%
+      {Use figures=osf (the default) or figures=lining.}%
+  \fi\fi
+  \let\aurea@figures\aurea@tmp}
+
+\DeclareKeys[aurea]{
+  % Babel languages; the last one is the main language.
+  language.store     = \aurea@language,
+  language.usage     = load,
+  % Cochineal figures: osf (old-style, the default) or lining.
+  figures.code       = \aurea@setfigures{#1},
+  figures.usage      = load,
+  % Unnumbered headings: the title carries the ordinal or the theme.
+  nonumbers.if       = aurea@nonumbers,
+  nonumbers.usage    = load,
+  % Extra geometry keys, appended to (so overriding) the golden-ratio block.
+  geometry.store     = \aurea@geometry,
+  geometry.usage     = load,
+  % \url font: tt (the default: cm-super typewriter under pdfTeX, Latin
+  % Modern Mono under LuaTeX and XeTeX), rm, sf or same. Checked after url loads.
+  urlstyle.store     = \aurea@urlstyle,
+  urlstyle.usage     = load,
+  % Watermark. The class option `draft' is seen here too, so
+  % \documentclass[draft]{article} gets the watermark without extra code
+  % (but the class option also puts graphicx and hyperref in draft mode;
+  % \usepackage[draft]{aurea} gives the watermark alone).
+  draft.code         = \aurea@watermarktrue,
+  draft.usage        = load,
+  final.code         = \aurea@watermarkfalse,
+  final.usage        = load,
+  watermark.code     = \aurea@watermarktrue
+                       \if\relax\detokenize{#1}\relax\else
+                         \def\aurea@wmtext{#1}\fi,
+  watermark.usage    = load,
+}
+\ProcessKeyOptions[aurea]
+
+\RequirePackage{iftex}
+
+%% ---------------------------------------------------------------------------
+%% Encoding and language
+%% ---------------------------------------------------------------------------
+%% Under pdfTeX: T1 for accented Italian and proper hyphenation, and UTF-8
+%% input (the default since LaTeX 2018; it is kept to match the originals).
+%% LuaTeX and XeTeX read Unicode natively and use TU, so both are skipped.
+\ifpdftex
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage[utf8]{inputenc}
+\fi
+%% Babel: Italian hyphenation and names ("Sommario", "Indice", "Figura").
+%% A babel loaded earlier by the document wins, so there is no option clash.
+\@ifpackageloaded{babel}{}{%
+  \PassOptionsToPackage{\aurea@language}{babel}%
+  \RequirePackage{babel}}
+%% csquotes after babel, so that \enquote follows the document language
+%% (Italian: outer «...», inner “...”).
+\RequirePackage{csquotes}
+
+%% ---------------------------------------------------------------------------
+%% Type
+%% ---------------------------------------------------------------------------
+% Cochineal: a Crimson-based book face, set with old-style figures; its small
+% x-height wants a touch of extra leading.
+\@ifpackageloaded{cochineal}{}{%
+  \def\aurea@tmp{lining}%
+  \ifx\aurea@figures\aurea@tmp
+    \RequirePackage[lining]{cochineal}%
+  \else
+    \RequirePackage[osf]{cochineal}%
+  \fi}
+\linespread{1.05}
+\RequirePackage{microtype}
+\RequirePackage{graphicx}
+
+%% ---------------------------------------------------------------------------
+%% Page
+%% ---------------------------------------------------------------------------
+% Golden-ratio page: a 110mm measure (about 70 characters per line in 12pt
+% Cochineal), phi times as tall, centred horizontally, with top and bottom
+% margins in the ratio 1:phi.
+%   110mm x 1.618 = 178mm;  297mm - 178mm = 119mm = 45.5mm + 73.5mm (1:phi).
+%% The paper size comes from the class (a4paper). The `geometry' option
+%% appends keys, so a key given there wins over the default of the same
+%% name. If the document loaded geometry itself, before aurea, its layout is
+%% kept as it is: only the `geometry' option keys are applied, through
+%% \geometry, and a message goes in the log.
+\@ifpackageloaded{geometry}
+  {\PackageInfo{aurea}{geometry was loaded before aurea, so the golden-ratio
+     \MessageBreak text block is not applied}%
+   \ifx\aurea@geometry\@empty\else
+     \expanded{\noexpand\geometry{\aurea@geometry}}%
+   \fi}
+  {\PassOptionsToPackage{textwidth=110mm,textheight=178mm,top=45.5mm,
+     \aurea@geometry}{geometry}%
+   \RequirePackage{geometry}}
+
+%% ---------------------------------------------------------------------------
+%% Links (hyperref late, after everything it has to patch)
+%% ---------------------------------------------------------------------------
+%% Links are clickable but invisible: no colour, no boxes. Packages that must
+%% precede hyperref belong before \usepackage{aurea}.
+\@ifpackageloaded{hyperref}
+  {\hypersetup{hidelinks}}
+  {\RequirePackage[hidelinks]{hyperref}}
+\def\aurea@tmp{tt}
+\ifx\aurea@urlstyle\aurea@tmp\else
+  \@ifundefined{url@\aurea@urlstyle style}
+    {\PackageError{aurea}{urlstyle=\aurea@urlstyle\space is not valid}%
+       {Use urlstyle=tt (the default), rm, sf or same.}}
+    {\urlstyle{\aurea@urlstyle}}%
+\fi
+%% \and and \thanks in an author given to \aureasetup would otherwise end
+%% up in the PDF Author field as garbage.
+\pdfstringdefDisableCommands{\def\and{, }\def\thanks#1{}}
+
+%% ---------------------------------------------------------------------------
+%% Draft watermark (as in ecce-homo)
+%% ---------------------------------------------------------------------------
+\ifaurea@watermark
+  \RequirePackage{draftwatermark}
+  \DraftwatermarkOptions{text=\aurea@wmtext, angle=45, scale=1,
+    fontsize=4cm, color=black!15}
+\fi
+
+%% ---------------------------------------------------------------------------
+%% Headings
+%% ---------------------------------------------------------------------------
+%% nonumbers: no numbers on chapters (in classes that have them), sections
+%% and below; \part keeps its number. In article this is secnumdepth 0, as
+%% in the originals.
+\ifaurea@nonumbers
+  \@ifundefined{chapter}
+    {\setcounter{secnumdepth}{0}}
+    {\setcounter{secnumdepth}{-1}}
+\fi
+
+%% ---------------------------------------------------------------------------
+%% Title page and metadata
+%% ---------------------------------------------------------------------------
+%% \aureasetup{title=, subtitle=, author=, authornote=, date=, subject=,
+%%             keywords=}
+%% Sets \title, \author and \date, plus pdftitle, pdfauthor, pdfsubject and
+%% pdfkeywords, in one place. The PDF title and author leave out the subtitle
+%% and the author note. Plain \title, \author and \date still work.
+\def\aurea@subtitle{}
+\def\aurea@authornote{}
+%% A class that has its own \subtitle (KOMA-Script) keeps it, and
+%% the subtitle key then goes through it, so it is printed once.
+\newif\ifaurea@classsubtitle
+\@ifundefined{subtitle}{}{\aurea@classsubtitletrue}
+\DeclareKeys[aurea]{
+  title.code      = \title{#1}\hypersetup{pdftitle={#1}},
+  title.usage     = preamble,
+  subtitle.code   = \ifaurea@classsubtitle\subtitle{#1}%
+                    \else\def\aurea@subtitle{#1}\fi,
+  subtitle.usage  = preamble,
+  author.code     = \author{#1}\hypersetup{pdfauthor={#1}},
+  author.usage    = preamble,
+  authornote.code = \def\aurea@authornote{#1},
+  authornote.usage= preamble,
+  date.code       = \date{#1},
+  date.usage      = preamble,
+  subject.code    = \hypersetup{pdfsubject={#1}},
+  subject.usage   = preamble,
+  keywords.code   = \hypersetup{pdfkeywords={#1}},
+  keywords.usage  = preamble,
+}
+\NewDocumentCommand\aureasetup{m}{\SetKeys[aurea]{#1}}
+\@onlypreamble\aureasetup
+%% Stand-alone forms of the two fields that article lacks. A class that
+%% already has \subtitle or \authornote (KOMA-Script, acmart, apa7...) keeps
+%% its own; the authornote key of \aureasetup still works there.
+\ProvideDocumentCommand\subtitle{m}{\def\aurea@subtitle{#1}}
+\ProvideDocumentCommand\authornote{m}{\def\aurea@authornote{#1}}
+
+%% The subtitle goes under the title, \large, 0.4em lower; the author note
+%% goes under the author, \small. This is the markup the originals typed by
+%% hand inside \title and \author:
+%%   \title{Ecce Homo \\[0.4em] \large Il processo di Gesù ...}
+%%   \author{don Fabio Rosini \\ \small Parrocchia S. Lorenzo da Brindisi, ...}
+\AddToHook{cmd/maketitle/before}{%
+  \ifx\aurea@subtitle\@empty\else
+    \let\aurea@title\@title
+    \def\@title{\aurea@title\\[0.4em]\large\aurea@subtitle}%
+  \fi
+  \ifx\aurea@authornote\@empty\else
+    \let\aurea@author\@author
+    \def\@author{\aurea@author\\\small\aurea@authornote}%
+  \fi}
+%% No page number on the title page. article's \maketitle forces `plain';
+%% the originals followed it with \thispagestyle{empty}. With the titlepage
+%% class option the title has a page of its own and is already empty. Classes
+%% without \if@titlepage (memoir) always get \thispagestyle{empty}.
+\AddToHook{cmd/maketitle/after}{%
+  \@ifundefined{if@titlepage}
+    {\thispagestyle{empty}}
+    {\csname if@titlepage\endcsname\else\thispagestyle{empty}\fi}}
+
+%% \indice: the table of contents on a fresh page at the end of the
+%% document, as Italian books do.
+\NewDocumentCommand\indice{}{\clearpage\tableofcontents}
+
+%% sommario: the abstract on a page of its own, as the four projects type it
+%% after the title page (and the epigraph, if any):
+%%   \clearpage \begin{abstract} ... \end{abstract} \clearpage
+%% The heading is \abstractname, which babel-italian sets to "Sommario". The
+%% page keeps its number (the class's plain style), as in the originals; put
+%% \thispagestyle{empty} inside the environment to hide it. The trailing
+%% \clearpage does nothing if the text starts with one of its own (the
+%% \puntata of ce-Speranza).
+%%
+%% Classes without an abstract environment (book, scrbook) get the look of
+%% article's: \small, a centred bold \abstractname, then quotation. The
+%% test is made when the environment is used, so an abstract defined later
+%% by a package is taken.
+\newif\ifaurea@abstract
+\NewDocumentEnvironment{sommario}{}
+  {\clearpage
+   \@ifundefined{abstract}{\aurea@abstractfalse}{\aurea@abstracttrue}%
+   \ifaurea@abstract
+     \begin{abstract}%
+   \else
+     \small
+     \begin{center}%
+       {\bfseries\@ifundefined{abstractname}{Abstract}{\abstractname}%
+        \vspace{-.5em}\vspace{\z@}}%
+     \end{center}%
+     \quotation
+   \fi}
+  {\ifaurea@abstract\end{abstract}\else\endquotation\fi
+   \clearpage}
+
+%% ---------------------------------------------------------------------------
+%% Scene break
+%% ---------------------------------------------------------------------------
+%% \scenebreak: a centred rule, 0.618 of the line wide and 0.618pt thick,
+%% that divides a chapter without a sub-heading.
+%%
+%% The originals call it \sectionbreak. That name is also a titlesec hook:
+%% when \sectionbreak is defined, titlesec runs it before every \section.
+%% So the real command is \scenebreak, and \sectionbreak is only an alias
+%% kept for the existing sources. The alias is made at \begin{document},
+%% and only when titlesec is not loaded and the preamble has not defined
+%% \sectionbreak itself, so titlesec's own \newcommand{\sectionbreak}{...}
+%% works before or after aurea. With titlesec a \sectionbreak left in the
+%% text stops with "Undefined control sequence" (a note goes in the log).
+\NewDocumentCommand\scenebreak{}{%
+  \begin{center}\rule{0.618\linewidth}{0.618pt}\end{center}}
+\AddToHook{begindocument/before}{%
+  \@ifpackageloaded{titlesec}
+    {\PackageInfo{aurea}{%
+       titlesec is loaded, so there is no \string\sectionbreak\space
+       alias;\MessageBreak use \string\scenebreak\space for the golden rule}}
+    {\@ifundefined{sectionbreak}{\let\sectionbreak\scenebreak}{}}}
+
+%% ---------------------------------------------------------------------------
+%% Quotations and references
+%% ---------------------------------------------------------------------------
+%% citazione: a display quotation in italics. Type the text plainly, with no
+%% \emph (inside italics \emph turns upright). The optional argument is the
+%% source, set on its own line, flush right, upright and small, in
+%% parentheses:
+%%   \begin{citazione}[Rm 4,18] Egli ebbe fede ... \end{citazione}
+%% \citazionefonte formats that line, so it can be restyled with
+%% \renewcommand.
+\NewDocumentCommand\citazionefonte{m}{%
+  \normalfont\upshape\footnotesize\hfill(#1)}
+\NewDocumentEnvironment{citazione}{o}
+  {\begin{quote}\itshape}
+  {\IfValueT{#1}{\par{\citazionefonte{#1}\par}}\end{quote}}
+
+%% \detto{...}: spoken words or a quoted phrase in the running text, set as
+%% italics in Italian guillemets. The marks are typed, not made by csquotes'
+%% \enquote, so the output is exactly the hand-typed \emph{«...»}: same
+%% kerning after «, and a plain word space after a closing ?» or !» (\enquote
+%% would pass the sentence space factor through the » and add glue after
+%% «). A \detto inside another stays italic (no second \emph) and gets the
+%% inner marks “...”, as the sources type them. Inside italic text
+%% (citazione) \emph, and so \detto, turns upright.
+\newif\ifaurea@detto
+\NewDocumentCommand\detto{m}{%
+  \ifaurea@detto
+    \textquotedblleft#1\textquotedblright
+  \else
+    {\aurea@dettotrue\emph{\guillemetleft#1\guillemetright}}%
+  \fi}
+%% At the start of a list item (the first paragraph of quote or citazione)
+%% microtype protrudes the first character only if it can see it through
+%% the commands it knows, such as \emph. Registering \detto the same way
+%% keeps the opening « hanging in the margin, as a typed \emph{«...»} does.
+\ifdefined\MT@prot@check@cmds
+  \g@addto@macro\MT@prot@check@cmds{{E\detto}}
+\fi
+
+%% Bible references in footnotes, CEI style, the final period added:
+%%   \rif{Gv 18,1}       -> footnote "Gv 18,1."        (literal quotation)
+%%   \cfr{Sal 30,2}      -> footnote "Cfr. Sal 30,2."  (allusion, paraphrase)
+\NewDocumentCommand\rif{m}{\footnote{#1.}}
+\NewDocumentCommand\cfr{m}{\footnote{Cfr. #1.}}
+
+%% \firma{...}: a signature under a letter or article, as the sources type
+%% it: a paragraph of its own, italic, with the usual indent (none inside
+%% quote), e.g. \begin{quote}...\firma{Padre Pio, cappuccino}\end{quote}.
+%% It stays italic inside citazione.
+\NewDocumentCommand\firma{m}{\par{\normalfont\itshape #1\/\par}}
+
+\endinput

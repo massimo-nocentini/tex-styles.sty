@@ -1,0 +1,109 @@
+% template.tex: a starter document for the aurea style.
+%
+% Put aurea.sty next to this file (or in TEXMFHOME/tex/latex/aurea/) and
+% build with:  latexmk -pdf template.tex   (lualatex and xelatex also work)
+%
+% The class sets the size and the paper (aurea's golden block is designed for
+% A4 portrait); aurea does the rest. For a DRAFT watermark, uncomment `draft'
+% below. Putting `draft' in the class options also gives the watermark, but
+% then graphicx prints figures as empty boxes and hyperref drops links and
+% the PDF metadata.
+\documentclass[12pt,a4paper]{article}
+
+% Every package option. The first five show their default value; delete what
+% you do not change. The last three are off unless you uncomment them.
+\usepackage[
+  language  = italian,  % babel languages, main one last: {latin,italian}
+  figures   = osf,      % osf (old-style) or lining
+  nonumbers = false,    % true: unnumbered chapters and sections
+  geometry  = {},       % extra geometry keys, e.g. {top=40mm}
+  urlstyle  = tt,       % \url font: tt, rm, sf or same
+  % draft,              % DRAFT watermark (figures and links stay normal)
+  % watermark = BOZZA,  % watermark with this text (DRAFT when left empty)
+  % final,              % no watermark, even with the `draft' class option
+]{aurea}
+
+% Title page and PDF metadata in one place. Values that contain commas go in
+% braces, e.g. authornote = {Parrocchia S. Lorenzo da Brindisi, Francavilla
+% Fontana}; without them the part after the comma is read as an unknown key.
+% \title, \author, \date, \subtitle and \authornote also work alone.
+\aureasetup{
+  title      = Titolo del documento,
+  subtitle   = Sottotitolo in corpo minore,
+  author     = Nome dell'autore,
+  authornote = {qualifica, luogo o occasione},
+  date       = 24 settembre 2026,
+  subject    = {Una frase che descrive il documento.},
+  keywords   = {parola chiave, altra parola chiave},
+}
+
+% Per-document macros go here (in ce-Speranza-e-speranza, for example,
+% \puntata stays here and does not move into the package).
+
+\begin{document}
+
+% The title page gets no page number: aurea adds \thispagestyle{empty}.
+\maketitle
+
+% An epigraph, if there is one, stays on the title page.
+\begin{citazione}[Rm 4,18]
+Egli ebbe fede sperando contro ogni speranza e così divenne padre di molti
+popoli.
+\end{citazione}
+
+% The abstract on a page of its own: sommario is \clearpage, abstract (babel
+% titles it "Sommario"), \clearpage. The page keeps its number, as in the
+% four projects.
+\begin{sommario}
+Un paragrafo che riassume il documento, su una pagina a sé.
+\end{sommario}
+
+% A lead artwork, if there is one. Budget room for the caption in the height,
+% so that the float does not grow taller than the page.
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\linewidth,height=0.8\textheight,keepaspectratio]
+    {example-image}
+  \caption[Titolo breve]{\emph{Titolo dell'opera}, didascalia estesa.}
+\end{figure}
+
+\clearpage
+
+\section{Primo capitolo}
+
+Il testo corre con il rientro di prima riga e senza spazio fra i paragrafi.
+Le parole dette vanno fra caporali in corsivo, \detto{come questa}, anche
+annidate: \detto{disse \detto{seguimi} e se ne andò}. Un riferimento biblico
+letterale va in nota con \verb|\rif|\rif{Mt 9,9}, un'allusione con
+\verb|\cfr|\cfr{Gv 18,17.25}. Le fonti in rete vanno in nota con
+\verb|\url|.\footnote{\url{https://www.example.org/}}
+
+\begin{citazione}
+Una citazione in blocco senza fonte: il testo è in corsivo, senza
+\verb|\emph|.
+\end{citazione}
+
+\scenebreak
+
+Dopo la riga aurea riprende il racconto. Una lettera si chiude con la firma,
+un paragrafo a sé in corsivo:
+
+\begin{quote}
+\emph{«Ti benedico».}
+
+\firma{Padre Pio, cappuccino}
+\end{quote}
+
+\section{Secondo capitolo}
+
+Il nome usato nei primi progetti, \verb|\sectionbreak|, resta come
+sinonimo:
+
+\sectionbreak
+
+Fine.
+
+% The table of contents ("Indice") at the back, on a page of its own.
+\indice
+
+\end{document}
